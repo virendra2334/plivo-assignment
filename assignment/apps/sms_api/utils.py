@@ -3,7 +3,7 @@ from utils.caches import RedisStore
 
 class StopRequestStore(RedisStore):
 
-    ttl = 30
+    ttl = 4*60*60
     check_exists = True
     
     @staticmethod
@@ -11,6 +11,7 @@ class StopRequestStore(RedisStore):
         return 'stoprequest_%s' % ''.join(keyParams)
 
 class OutboundSMSCounter(RedisStore):
+
     ttl = 24*60*60
 
     @staticmethod

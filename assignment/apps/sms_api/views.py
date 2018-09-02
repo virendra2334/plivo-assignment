@@ -16,7 +16,7 @@ from .constants import MAX_OUTBOUND_SMS_PER_NUMBER, SERIALIZER_FIELD_PREFIX
 from .constants import SMSParams, SMSType, STOP_MESSAGE, SuccessMessage
 from .models import PhoneNumber
 from .serializers import SMSDataSerializer
-from .utils import StopRequestStore
+from .utils import OutboundSMSCounter, StopRequestStore
 
 
 class BaseView(APIView):
@@ -137,7 +137,8 @@ class InboundSMSView(BaseView):
             return self._accepted_response(
                 SuccessMessage.SMS_REQUEST_OK % SMSType.INBOUND
             )
-        
+
+
 class OutboundSMSView(BaseView):
 
     def _validate_from_number(self, request, sms):
@@ -155,10 +156,13 @@ class OutboundSMSView(BaseView):
         key = OutboundSMSCounter.generate_key([sms.sms_from])
         store = OutboundSMSCounter(self._cache)
         counter = store.get(key)
+        
         if counter is None:
             store.setincr(key, 1)
             return True, None
-        elif counter >= MAX_OUTBOUND_SMS_PER_NUMBER:
+
+        counter = int(counter)
+        if counter >= MAX_OUTBOUND_SMS_PER_NUMBER:
             error = ErrorMessage.LIMIT_REACHED % sms.sms_from
             resp = self._error_response(error, HTTP_403_FORBIDDEN)
             return False, resp

@@ -4,7 +4,7 @@ FIELD_REQUIRED_MESSAGE = Field.default_error_messages['required']
 SERIALIZER_FIELD_PREFIX = "sms_"
 STOP_MESSAGE = 'STOP'
 
-MAX_OUTBOUND_SMS_PER_NUMBER = 50
+MAX_OUTBOUND_SMS_PER_NUMBER = 2
 
 
 class SMSType(object):
