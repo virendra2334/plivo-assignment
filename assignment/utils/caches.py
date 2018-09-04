@@ -1,8 +1,12 @@
 import redis
 
+
+PROD_DB=0
+TEST_DB=1
+
 class RedisConnection(redis.StrictRedis):
 
-    def __init__(self, host='localhost', port=6379, db=0):
+    def __init__(self, host='localhost', port=6379, db=PROD_DB):
         super().__init__(host=host, port=port, db=db)
 
 class RedisStore(object):

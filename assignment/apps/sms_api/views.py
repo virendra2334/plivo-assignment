@@ -1,5 +1,7 @@
 # Create your views here.
 
+from copy import deepcopy
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,7 +10,7 @@ from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN
 from rest_framework.status import HTTP_404_NOT_FOUND
 from rest_framework.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from utils.caches import RedisConnection
+from utils.caches import RedisConnection, PROD_DB, TEST_DB
 
 from .authentication import AccountBasicAuthentication
 from .constants import ErrorMessage, FIELD_REQUIRED_MESSAGE 
@@ -20,38 +22,141 @@ from .utils import OutboundSMSCounter, StopRequestStore
 
 
 class BaseView(APIView):
+    """Base class with common methods that we are going to use for both our 
+    APIs."""
 
+    
+    """
+    We have overriden DRF's BasicAuthentication class here as it supports
+    authentication only on Django's user model. We wanted to authenticate
+    from our custom model and hence the override.
+    """
     authentication_classes = [AccountBasicAuthentication]
+
+    """
+    This check will make basic authentication mandatory for all the
+    requests to our API server.
+    """
     permission_classes = [IsAuthenticated]
 
+
     def _from_request_key(self, key):
+        """
+        We have a key called `from` in our request, which is also a
+        keyword in Python, hence in the serializer we are prefixing all
+        the data keys with a prefix.
+        
+        params: 
+            key, type string
+        return: 
+            prefixed key, type string
+
+        """
         return '%s%s' % (SERIALIZER_FIELD_PREFIX, key)
 
     def _to_request_key(self, key):
-        return key.replace(SERIALIZER_FIELD_PREFIX, '')
+        """
+        For removing the prefix from the serialzer key when 
+        sending the respons back.
+        
+        params: 
+            prefixed key, type string
+        return: 
+            unprefixed key, type string
+        """
+        if key.startswith(SERIALIZER_FIELD_PREFIX):
+            return key.replace(SERIALIZER_FIELD_PREFIX, '')
+        return key
 
-    def format_data(self, data): 
-        fdata = {}
-        for k, v in data.items():
-            fdata[self._from_request_key(k)] = v
+    def _format_data(self, data):
+        """
+        Updates all the keys in the request data with our custom defined
+        prefix.
+        
+        params: 
+            request data, type dict
+        return: 
+            request data with prefixed keys, type none
+        """
+        if isinstance(data, dict):
+            fdata = {}
+            for k, v in data.items():
+                fdata[self._from_request_key(k)] = v
 
-        return fdata
+            return fdata
 
     def _response(self, message="", error="", status=HTTP_202_ACCEPTED):
+        """
+        A common response method for the type of response we want to show
+        to the users of our API.
+        
+        params: 
+            message shown on success, type string
+            error shown in all other cases, type string
+            status according to error or success, type int
+        return:
+            DRF Response object
+        """
         return Response({"error": error, "message": message}, status)
 
     def _error_response(self, error, status=HTTP_400_BAD_REQUEST):
+        """
+        A common method for capturing all kinds of errors that have to
+        be presented to the user.
+        
+        params:
+            error, type string
+            status, type int
+        return:
+            DRF Response object
+        """
         return self._response(error=error, status=status)
     
+
     def _accepted_response(self, message):
+        """
+        A common method for capturing when the API call is successful.
+
+        params:
+            message, type string
+        return:
+            DRF Response object
+        """
         return self._response(message=message)
 
     def _unknown_failure_response(self):
+        """
+        A common method for capturing all kinds of failures, mostly system
+        failures like DB issues, cache failure etc.
+    
+        params:
+            No params
+        return:
+            DRF Response object
+        """
         return self._error_response(
             ErrorMessage.UNKNOWN_FAILURE, status=HTTP_500_INTERNAL_SERVER_ERROR
         )
 
     def _process_validation_errors(self, errors):
+        """
+        Method for processing errors that got generated while validating the
+        data received in the API call.
+        
+        params:
+            errors, type dict(list_
+        return:
+            DRF Response object
+        """
+
+        """
+        We want to first report the missing fields and then validation errors 
+        if any. An assumption that has been made here is that we want to show
+        only one validation error at one time. Multiple validation errors can
+        also be clubbed and shown as one error. We have also generalized all
+        validation errors as 'Field is invalid'. We can chose to report the
+        verbose erorrs at any point in time.
+        """
         missing_fields = []
         invalid_fields = []
         for k, v in errors.items():
@@ -75,13 +180,34 @@ class BaseView(APIView):
             return self._error_response(error % field)
 
     def post(self, request, format=None):
-        
-        self._cache = RedisConnection()
 
+        """
+        We initialize this connection object just once during the entire
+        request/response lifecycle.
+        """
+
+        
+        #If the data received is not a dictionary, inform the user
         if not isinstance(request.data, dict):
             return self._error_response(ErrorMessage.DATA_INVALID)
+        
+        data = {}
+        self.integration_test = False
+        if request.data:
+            data = deepcopy(request.data)
+            if 'integration_test' in data:
+                self.integration_test = True
+                del data['integration_test']
+            data = self._format_data(data) 
 
-        data = self.format_data(request.data) if request.data else {}
+        cache_db = None
+        if self.integration_test:
+            cache_db = TEST_DB
+        else:
+            cache_db = PROD_DB
+        self._cache = RedisConnection(db=cache_db)
+        
+        data = self._format_data(request.data) if request.data else {}
         serializer = SMSDataSerializer(data=data)
         if serializer.is_valid():
             sms = serializer.save()
@@ -100,7 +226,6 @@ class BaseView(APIView):
                     continue
                 return response
         except Exception as e:
-            print(e)
             return self._unknown_failure_response()
 
 
