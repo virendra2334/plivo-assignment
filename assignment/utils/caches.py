@@ -1,13 +1,16 @@
+import os
 import redis
 
 
-PROD_DB=0
-TEST_DB=1
+BASE_REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+PROD_REDIS_URL = BASE_REDIS_URL + '/0'
+TEST_REDIS_URL = BASE_REDIS_URL + '/1'
 
-class RedisConnection(redis.StrictRedis):
+class RedisConnection(object):
 
-    def __init__(self, host='localhost', port=6379, db=PROD_DB):
-        super().__init__(host=host, port=port, db=db)
+    @staticmethod
+    def get_connection(url):
+        return redis.StrictRedis.from_url(url)
 
 class RedisStore(object):
     
@@ -15,7 +18,7 @@ class RedisStore(object):
     check_exists = False
 
     def __init__(self, connection=None):
-        self.connection = connection or RedisConnection()
+        self.connection = connection or RedisConnection.get_connection(PROD_REDIS_URL)
 
     def get(self, key):
         return self.connection.get(key)

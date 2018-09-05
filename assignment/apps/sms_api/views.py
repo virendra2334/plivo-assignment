@@ -10,7 +10,7 @@ from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_403_FORBIDDEN
 from rest_framework.status import HTTP_404_NOT_FOUND
 from rest_framework.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from utils.caches import RedisConnection, PROD_DB, TEST_DB
+from utils.caches import RedisConnection, PROD_REDIS_URL, TEST_REDIS_URL
 
 from .authentication import AccountBasicAuthentication
 from .constants import ErrorMessage, FIELD_REQUIRED_MESSAGE 
@@ -200,12 +200,12 @@ class BaseView(APIView):
                 del data['integration_test']
             data = self._format_data(data) 
 
-        cache_db = None
+        cache_db_url = None
         if self.integration_test:
-            cache_db = TEST_DB
+            cache_db_url = TEST_REDIS_URL
         else:
-            cache_db = PROD_DB
-        self._cache = RedisConnection(db=cache_db)
+            cache_db_url = PROD_REDIS_URL
+        self._cache = RedisConnection.get_connection(cache_db_url)
         
         data = self._format_data(request.data) if request.data else {}
         serializer = SMSDataSerializer(data=data)

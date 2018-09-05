@@ -7,7 +7,7 @@ from rest_framework.test import APITestCase
 from rest_framework import HTTP_HEADER_ENCODING, status
 
 from utils.api_client import RequestType
-from utils.caches import RedisConnection, TEST_DB
+from utils.caches import RedisConnection, TEST_REDIS_URL
 
 from .constants import MAX_OUTBOUND_SMS_PER_NUMBER
 from .models import Account, PhoneNumber
@@ -222,5 +222,5 @@ class IntegrationTestCase(APITestCase):
 
     def tearDown(self):
     
-        r = RedisConnection(db=TEST_DB)
+        r = RedisConnection.get_connection(TEST_REDIS_URL)
         r.flushall()
