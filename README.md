@@ -10,5 +10,5 @@ https://smsapi1.herokuapp.com/outbound/sms/
 Libraries and packages used:  
 Django  
 DRF  
-Redis
+Redis  
 PostgreSQL
