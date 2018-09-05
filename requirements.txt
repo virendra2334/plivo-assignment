@@ -1,7 +1,7 @@
 django==1.11
 djangorestframework
+dj-database-url
 psycopg2-binary
 redis
 requests
 uwsgi
-dj-database-url
