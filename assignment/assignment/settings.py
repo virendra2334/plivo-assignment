@@ -79,9 +79,9 @@ WSGI_APPLICATION = 'assignment.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
+        'NAME': 'assignment',
+        'USER': 'assignment',
+        'PASSWORD': 'assignment',
         'HOST': '127.0.0.1',
         'PORT': 5432,
     }
