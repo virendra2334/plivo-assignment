@@ -1,2 +1,3 @@
 Just clone the repository and run sh setup/setup.sh  
-Supported versions: Python 2 and 3
+Supported python versions: Python 3
+To run tests: cd assignment && ./manage.py test apps.sms_api.tests
