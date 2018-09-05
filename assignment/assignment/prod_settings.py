@@ -1,5 +1,4 @@
-import django_heroku
-import os
+import dj_database_url
 
 from .settings import *
 
@@ -9,4 +8,5 @@ ALLOWED_HOSTS = [
     'smsapi1.herokuapp.com'
 ]
 
-django_heroku.settings(locals())
+
+DATABASES['default'] = dj_database_url.config()
