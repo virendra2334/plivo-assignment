@@ -9,4 +9,5 @@ ALLOWED_HOSTS = [
     'smsapi1.herokuapp.com'
 ]
 
+print(os.environ['DATABASE_URL'], 'FSADFASDFSDAFSDAFSDAFASF')
 DATABASES['default'] = dj_database_url.config(os.environ['DATABASE_URL'])

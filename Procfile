@@ -1,1 +1,1 @@
-web: cd assignment && ./manage.py migrate && ./manage.py loaddata initial_data && uwsgi uwsgi.ini
+web: cd assignment && ./prod_manage.py migrate && ./prod_manage.py loaddata initial_data && uwsgi uwsgi.ini
